@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TicTacToe</title>
+        <meta name="description" content="一个TicTacToe游戏的实现" />
+        <style>
+            .cell {
+                background-color: aqua;
+                border: 1px solid grey;
+                cursor: pointer;
+                width: 30px;
+                height: 30px;
+                line-height: 30px;
+                text-align: center;
+                margin: 1px;
+
+                display: inline-block;
+                vertical-align: middle;
+
+                user-select: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="tictactoe-container"></div>
+        <script type="text/javascript">
+            // 全局默认值
+            let color = 1
+            // 棋盘的值
+            let pattern = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+            // 打印棋盘
+            function show() {
+                const container = document.getElementById("tictactoe-container")
+
+                // 清楚表面棋盘
+                container.innerHTML = ""
+
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        const dom = document.createElement("div")
+                        dom.classList.add("cell")
+                        dom.innerText =
+                            pattern[i * 3 + j] === 1
+                                ? "⭕"
+                                : pattern[i * 3 + j] === 2
+                                ? "❌"
+                                : ""
+                        dom.addEventListener("click", () => userMove(j, i))
+                        container.appendChild(dom)
+                    }
+                    container.appendChild(document.createElement("br"))
+                }
+            }
+
+            // 落子函数
+            function userMove(x, y) {
+                // 判断值的情况
+                if ([1, 2].indexOf(pattern[y * 3 + x]) !== -1) {
+                    return
+                }
+                pattern[y * 3 + x] = color
+                // 每次点击之后1, 2来回变换
+                if (check(pattern, color)) {
+                    alert(color === 2 ? "❌胜利" : "⭕胜利")
+                    // FIXME 赢了之后限制落子？
+                }
+                color = 3 - color
+                // console.log(bestChoice(pattern, color))
+                show()
+                // if (willWin(pattern, color)) {
+                //     console.log(color === 2 ? "❌将要胜利" : "⭕将要胜利")
+                // }
+                computerMove()
+            }
+
+            function computerMove() {
+                let choice = bestChoice(pattern, color)
+                if (choice.point) {
+                    pattern[choice.point[1] * 3 + choice.point[0]] = color
+                }
+                if (check(pattern, color)) {
+                    alert(color === 2 ? "❌胜利" : "⭕胜利")
+                }
+                color = 3 - color
+                show()
+            }
+
+            // 胜负检查函数
+            function check(pattern, color) {
+                /**
+                 * 1. 横行检查
+                 * 2. 竖行检查
+                 * 3. 斜线检查
+                 */
+                for (let i = 0; i < 3; i++) {
+                    let win = true
+                    for (let j = 0; j < 3; j++) {
+                        // 注意这里的判定
+                        if (pattern[i * 3 + j] !== color) {
+                            win = false
+                        }
+                    }
+                    if (win) {
+                        return true
+                    }
+                }
+
+                for (let i = 0; i < 3; i++) {
+                    let win = true
+                    for (let j = 0; j < 3; j++) {
+                        if (pattern[j * 3 + i] !== color) {
+                            win = false
+                        }
+                    }
+                    if (win) {
+                        return true
+                    }
+                }
+
+                // let const块级作用域
+                // 斜线判断有误
+                {
+                    let win = true
+                    for (let i = 0; i < 3; i++) {
+                        if (pattern[i * 3 + i] !== color) {
+                            win = false
+                        }
+                    }
+                    if (win) {
+                        return true
+                    }
+                }
+
+                {
+                    let win = true
+                    for (let i = 0; i < 3; i++) {
+                        if (pattern[i * 3 + 2 - i] !== color) {
+                            win = false
+                        }
+                    }
+                    if (win) {
+                        return true
+                    }
+                }
+                return false
+            }
+
+            // 深拷贝
+            // function clone(pattern) {
+            //     return JSON.parse(JSON.stringify(pattern))
+            // }
+
+            /**
+             * 原型方法
+             */
+            function clone(pattern) {
+                return Object.create(pattern)
+            }
+
+            // 形势判断
+            function willWin(pattern, color) {
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (pattern[i * 3 + j]) {
+                            continue
+                        }
+                        let tmp = clone(pattern)
+                        tmp[i * 3 + j] = color
+                        if (check(tmp, color)) {
+                            return [j, i]
+                        }
+                    }
+                }
+                return null
+            }
+
+            function bestChoice(pattern, color) {
+                let p
+                // 赛点判断
+                if ((p = willWin(pattern, color))) {
+                    return {
+                        point: p,
+                        result: 1,
+                    }
+                }
+
+                // 最差的情况
+                let result = -2
+                let point = null
+                outer: for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (pattern[i * 3 + j]) continue
+                        let tmp = clone(pattern)
+                        tmp[i * 3 + j] = color
+                        let opp = bestChoice(tmp, 3 - color)
+                        if (-opp.result >= result) {
+                            point = [j, i]
+                            result = -opp.result
+                        }
+                        if (result === 1) {
+                            break outer
+                        }
+                    }
+                }
+                return {
+                    point: point,
+                    result: point ? result : 0,
+                }
+            }
+
+            show(pattern)
+        </script>
+    </body>
+</html>
